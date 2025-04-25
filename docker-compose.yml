@@ -1,0 +1,40 @@
+version: '3'
+services:
+  nut:
+    image: instantlinux/nut-upsd
+    container_name: nut
+    ports:
+      # - "80:80"
+      # - "443:443"
+      - "3493:3493"
+    volumes:
+      - ./nut:/etc/nut
+    environment:
+      # - TZ=America/Indianapolis
+      - API_USER=${API_USER}
+      - API_PASSWORD=${API_PASSWORD}
+      - DRIVER=usbhid-ups
+    devices:
+      - /dev/bus/usb:/dev/bus/usb
+    restart: unless-stopped
+
+  peanut:
+    image: brandawg93/peanut:latest
+    container_name: peanut
+    restart: unless-stopped
+    ports:
+      - 8080:8080
+    environment:
+      - NUT_HOST=nut
+      - NUT_PORT=3493
+      - WEB_PORT=8080
+    # Don't start peanut until after nut-upsd is running
+    depends_on:
+      - nut
+
+  watch_tower:
+    image: containrrr/watchtower:latest
+    container_name: watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: always
